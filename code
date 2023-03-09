@@ -1,0 +1,45 @@
+import Jama.*;
+
+public class SolarPanelOptimizer {
+
+    private static final double SOLAR_CONSTANT = 1361; // Constante solar em W/m^2
+    private static final double REFLECTANCE = 0.2; // Coeficiente de reflexão do painel solar
+
+    private double[][] data;
+    private int numRows;
+    private int numCols;
+
+    public SolarPanelOptimizer(double[][] data) {
+        this.data = data;
+        numRows = data.length;
+        numCols = data[0].length;
+    }
+
+    public double getEnergyOutput(double orientation, double tilt) {
+        double zenithAngle = Math.acos(data[0][0] * Math.sin(tilt) * Math.cos(orientation) + data[0][1] * Math.sin(tilt) * Math.sin(orientation) + data[0][2] * Math.cos(tilt));
+        double incidenceAngle = Math.acos(Math.max(0, Math.sin(tilt) * Math.sin(zenithAngle) * Math.cos(orientation) - Math.sin(zenithAngle) * Math.cos(tilt)) * Math.signum(data[0][2]));
+
+        Matrix transformation = new Matrix(new double[][]{
+            {Math.cos(orientation), -Math.sin(orientation), 0},
+            {Math.sin(orientation), Math.cos(orientation), 0},
+            {0, 0, 1}
+        }).times(new Matrix(new double[][]{
+            {1, 0, 0},
+            {0, Math.cos(tilt), Math.sin(tilt)},
+            {0, -Math.sin(tilt), Math.cos(tilt)}
+        }));
+
+        Matrix normal = new Matrix(new double[][]{{0}, {0}, {1}});
+        Matrix sun = new Matrix(new double[][]{{Math.sin(zenithAngle) * Math.cos(incidenceAngle)}, {Math.sin(zenithAngle) * Math.sin(incidenceAngle)}, {Math.cos(zenithAngle)}});
+
+        Matrix sunVector = transformation.times(sun);
+        Matrix normalVector = transformation.times(normal);
+
+        double cosTheta = sunVector.transpose().times(normalVector).get(0, 0);
+        double energyOutput = SOLAR_CONSTANT * cosTheta * (1 - REFLECTANCE);
+
+        return energyOutput;
+    }
+
+    // outros métodos aqui
+}
